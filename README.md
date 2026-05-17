@@ -1,5 +1,7 @@
 # Deep PDE Solvers — 2D Black-Scholes Exchange Option
 
+DISCLAIMER: Parts of my additions to the code base were written with help from claude code
+
 Pricing the 2-dimensional Black-Scholes exchange option (Margrabe) by solving
 the associated PDE with deep BSDE methods, and comparing against the analytical
 Margrabe benchmark.
