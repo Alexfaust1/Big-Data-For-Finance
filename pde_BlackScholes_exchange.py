@@ -72,8 +72,10 @@ def train(T,
         x0 = sample_x0(batch_size, d, device, lognormal=True)
         if method=="bsde":
             loss, _, _ = fbsde.bsdeint(ts=ts, x0=x0, option=option)
-        else:
+        elif method=="l2_proj":
             loss, _, _ = fbsde.l2_proj(ts=ts, x0=x0, option=option)
+        elif method=="corr_max":
+            loss, _, _ = fbsde.corr_max(ts=ts, x0=x0, option=option)
         loss.backward()
         optimizer.step()
         scheduler.step()
@@ -87,6 +89,8 @@ def train(T,
                     loss, Y, payoff = fbsde.bsdeint(ts=ts,x0=x0,option=option)
                 elif method == 'l2_proj':
                     loss, Y, payoff = fbsde.l2_proj(ts=ts,x0=x0,option=option)
+                elif method == 'corr_max':
+                    loss, Y, payoff = fbsde.corr_max(ts=ts, x0=x0, option=option)
                 payoff = torch.exp(-mu * ts[-1]) * payoff.mean()
             
             pbar.update(10)
@@ -97,7 +101,10 @@ def train(T,
     
     x0 = sample_x0(1, d, device, lognormal=False)
     fbsde.eval()
-    discounted_payoff, discounted_payoff_cv = fbsde.unbiased_price(ts=ts, x0=x0, option=option, MC_samples=10000, method=method)
+    # corr_max trains self.dfdx directly, so route it through unbiased_price's
+    # 'bsde' branch (which also reads self.dfdx directly).
+    eval_method = 'bsde' if method == 'corr_max' else method
+    discounted_payoff, discounted_payoff_cv = fbsde.unbiased_price(ts=ts, x0=x0, option=option, MC_samples=10000, method=eval_method)
     variance_red_factor = discounted_payoff.var() / discounted_payoff_cv.var()
     results = {'discounted_payoff':discounted_payoff.mean().item(), 
             'discounted_payoff_cv':discounted_payoff_cv.mean().item(),
@@ -176,7 +183,7 @@ if __name__ == "__main__":
     parser.add_argument('--n_steps', default=50, type=int, help="number of steps in time discrretisation")
     parser.add_argument('--mu', default=0.05, type=float, help="risk free rate")
     parser.add_argument('--sigma', default=0.3, type=float, help="risk free rate")
-    parser.add_argument('--method', default="bsde", type=str, help="learning method", choices=["bsde","l2_proj"])
+    parser.add_argument('--method', default="bsde", type=str, help="learning method", choices=["bsde","l2_proj","corr_max"])
     
     parser.add_argument('--visualize', action='store_true', default=False)
 

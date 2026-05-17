@@ -1,0 +1,4 @@
+Method,n_seeds,Var(MC) mean,Var(MC+CV) mean ± std,Variance Reduction Factor mean ± std,Mean(MC+CV),Margrabe,Bias = Mean(MC+CV) - Margrabe
+bsde,3,3.12E-02,3.4209e-04 ± 2.6884e-05,91.48 ± 6.98,0.119192,0.119235,-0.000043
+l2_proj,3,3.12E-02,2.3136e-03 ± 1.1405e-03,15.65 ± 6.82,0.118817,0.119235,-0.000418
+corr_max,3,3.12E-02,3.1609e-04 ± 3.2347e-05,99.34 ± 10.75,0.11922,0.119235,-0.000016

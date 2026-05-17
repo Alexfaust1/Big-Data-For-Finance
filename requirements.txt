@@ -1,0 +1,24 @@
+# Dependencies for pde_BlackScholes_exchange.py and analyze_results.py
+#
+# Tested on: Python 3.10.0, Windows 11, NVIDIA RTX 4000 Ada (CUDA 12.8).
+#
+# torch is pinned to the +cu128 CUDA build. This wheel is NOT on PyPI -- it
+# must be installed from the PyTorch index:
+#
+#     pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu128
+#
+# For a CPU-only install, drop the "+cu128" suffix from the torch line, or
+# replace it with `torch==2.11.0` and install from default PyPI.
+#
+# Direct imports across the repo:
+#   torch    -- pde_BlackScholes_exchange.py, lib/*
+#   numpy    -- analyze_results.py, lib/options.py, lib/utils.py
+#   pandas   -- pde_BlackScholes_exchange.py, analyze_results.py
+#   scipy    -- lib/options.py (norm.cdf), analyze_results.py (norm.cdf)
+#   tqdm     -- pde_BlackScholes_exchange.py
+
+torch==2.11.0+cu128
+numpy==2.2.6
+pandas==2.3.3
+scipy==1.15.3
+tqdm==4.67.3

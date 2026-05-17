@@ -1,0 +1,41 @@
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Word lock / temp files
+~$*.docx
+~$*.doc
+~WRL*.tmp
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local notebooks / scratch
+*.ipynb_checkpoints/
+
+# Upstream scripts/modules not used by pde_BlackScholes_exchange.py.
+# Kept on disk for local reference, excluded from this repo.
+/pde_BlackScholes_basket.py
+/pde_BlackScholes_basket_mc.py
+/pde_BlackScholes_exchange_dgm.py
+/pde_BlackScholes_exchange_mc.py
+/pde_Brownian.py
+/lib/bsde.py
+/lib/dgm.py
+/lib/functions.py
+/old/
+/numerical_results/Brownian/
+/numerical_results/BS/basket_2/
+
+# Local writeup; not part of the codebase
+/Deep Monte Carlo Paper.docx

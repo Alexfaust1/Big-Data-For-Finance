@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import signatory
 from typing import Tuple, Optional, List
 from abc import abstractmethod
 
@@ -101,6 +100,72 @@ class FBSDE(nn.Module):
             loss += loss_fn(pred, target)
         return loss, Y, payoff
 
+    """
+    NEW: Martingale control variates solver: Empirical correlation maximization
+    
+    - Added correlation maximization method as seen in Appendix B. as 'Algorithm 5'
+    """
+    def corr_max(self, ts: torch.Tensor, x0:torch.Tensor, option: BaseOption):
+        """
+        Algorithm 5 (Appendix B): train ``self.dfdx`` by maximizing the squared
+        Pearson correlation between the discounted terminal payoff and the
+        discrete stochastic-integral control variate.
+
+        Parameters
+        ----------
+        ts: torch.Tensor
+            timegrid. Vector of length N
+        x0: torch.Tensor
+            initial value of SDE. Tensor of shape (batch_size, d)
+        option: object of class option to calculate payoff
+
+        Returns
+        -------
+        loss : torch.Tensor (scalar)
+        Y    : torch.Tensor of shape (batch_size, L, 1) -- price net output
+        payoff : torch.Tensor of shape (batch_size, 1)
+        """
+        x, brownian_increments = self.sdeint(ts, x0)
+        payoff = option.payoff(x[:, -1, :])  # (batch_size, 1)
+        batch_size = x.shape[0]
+
+        t = ts.reshape(1, -1, 1).repeat(batch_size, 1, 1)
+        tx = torch.cat([t, x], 2)  # (batch_size, L, d+1)
+
+        # Price network output -- not used in the loss, returned for interface
+        # compatibility with bsdeint / l2_proj.
+        if isinstance(self.f, FFN_net_per_timestep):
+            Y = self.f(x)
+        else:
+            Y = self.f(tx)  # (batch_size, L, 1)
+
+        # Gradient network Z_t -- the trained quantity.
+        if isinstance(self.dfdx, FFN_net_per_timestep):
+            Z = self.dfdx(x)
+        else:
+            Z = self.dfdx(tx)  # (batch_size, L, d)
+
+        # Discrete stochastic integral (control variate).
+        stoch_int = 0
+        for idx, t in enumerate(ts[:-1]):
+            discount_factor = torch.exp(-self.mu * t)
+            stoch_int = stoch_int + discount_factor * torch.sum(
+                Z[:, idx, :] * brownian_increments[:, idx, :], 1, keepdim=True
+            )
+
+        mc = torch.exp(-self.mu * ts[-1]) * payoff  # (batch_size, 1)
+
+        # Loss = 1 - squared empirical Pearson correlation(mc, stoch_int).
+        mc_centered = mc - mc.mean()
+        m_centered = stoch_int - stoch_int.mean()
+        cov = (mc_centered * m_centered).mean()
+        var_xi = mc_centered.pow(2).mean()
+        var_m = m_centered.pow(2).mean()
+        loss = 1 - (cov ** 2) / (var_xi * var_m + 1e-8)
+
+        return loss, Y, payoff
+
+
     def unbiased_price_mc(self, ts: torch.Tensor, x0: torch.Tensor, option: BaseOption, MC_samples: int, antithetic: bool = False):
         """
         We calculate Monte Carlo approimation of the price
@@ -167,6 +232,8 @@ class FBSDE(nn.Module):
         cv = stoch_int
         cv_mult = torch.mean((mc-mc.mean())*(cv-cv.mean())) / cv.var() # optimal multiplier. cf. Belomestny book
         return mc, mc - cv_mult*stoch_int # stoch_int has expected value 0, thus it doesn't add any bias to the MC estimator, and it is correlated with payoff
+    
+
 
 
 
